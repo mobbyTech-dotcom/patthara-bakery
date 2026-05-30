@@ -18,6 +18,46 @@ window.logout = () => { signOut(auth); }
 
 let products = [];
 
+// Compress รูปก่อน upload
+async function compressImage(file, maxSizeKB = 800) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+
+                if (width > 1200) {
+                    height = Math.round((height * 1200) / width);
+                    width = 1200;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+                let quality = 0.8;
+                let compressed = canvas.toDataURL('image/jpeg', quality);
+                while (compressed.length / 1024 > maxSizeKB && quality > 0.2) {
+                    quality -= 0.1;
+                    compressed = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                const arr = compressed.split(',');
+                const mime = arr[0].match(/:(.*?);/)[1];
+                const bstr = atob(arr[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) u8arr[n] = bstr.charCodeAt(n);
+                resolve(new File([u8arr], file.name, { type: mime }));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // Preview รูปก่อนอัปโหลด
 window.previewImage = function(e) {
     const file = e.target.files[0];
@@ -32,6 +72,7 @@ window.previewImage = function(e) {
 }
 
 async function uploadImage(file) {
+    file = await compressImage(file);
     return new Promise((resolve, reject) => {
         const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
         const uploadTask = uploadBytesResumable(storageRef, file);

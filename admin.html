@@ -29,10 +29,43 @@
             <h3 id="form-title" class="text-base font-bold mb-4 flex items-center gap-2"><i data-lucide="cloud-upload" class="text-blue-500"></i> อัปโหลดสินค้าขึ้น Cloud</h3>
             <form onsubmit="window.saveProduct(event)" id="product-form" class="space-y-4">
                 <input type="hidden" id="prod-id">
-                <div><label class="block text-xs font-medium mb-1">ชื่อสินค้า *</label><input type="text" id="prod-name" required class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400"></div>
-                <div><label class="block text-xs font-medium mb-1">ราคา (บาท) *</label><input type="number" id="prod-price" required min="0" class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400"></div>
-                <div><label class="block text-xs font-medium mb-1">URL รูปภาพ *</label><input type="url" id="prod-img" required class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400"></div>
-                <div><label class="block text-xs font-medium mb-1">รายละเอียด</label><textarea id="prod-desc" rows="3" class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400"></textarea></div>
+                <input type="hidden" id="current-img-url">
+
+                <div>
+                    <label class="block text-xs font-medium mb-1">ชื่อสินค้า *</label>
+                    <input type="text" id="prod-name" required class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1">ราคา (บาท) *</label>
+                    <input type="number" id="prod-price" required min="0" class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400">
+                </div>
+
+                <!-- อัปโหลดรูปจากเครื่อง -->
+                <div>
+                    <label class="block text-xs font-medium mb-1">รูปภาพสินค้า *</label>
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                        <div class="flex flex-col items-center justify-center gap-1">
+                            <i data-lucide="image-plus" class="w-7 h-7 text-slate-400"></i>
+                            <span class="text-xs text-slate-500">คลิกเพื่อเลือกรูปจากเครื่อง</span>
+                            <span class="text-xs text-slate-400">PNG, JPG, WEBP</span>
+                        </div>
+                        <input type="file" id="prod-img-file" accept="image/*" class="hidden" onchange="window.previewImage(event)">
+                    </label>
+                    <!-- Preview -->
+                    <img id="img-preview" src="" class="hidden mt-3 w-full h-40 object-cover rounded-xl border border-slate-200">
+                    <!-- Progress Bar -->
+                    <div id="upload-progress" class="hidden mt-2">
+                        <div class="w-full bg-slate-100 rounded-full h-5 overflow-hidden">
+                            <div id="progress-fill" class="bg-blue-500 h-5 rounded-full text-xs text-white flex items-center justify-center transition-all" style="width:0%">0%</div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1 text-center">กำลังอัปโหลดรูป...</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium mb-1">รายละเอียด</label>
+                    <textarea id="prod-desc" rows="3" class="w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-blue-400"></textarea>
+                </div>
                 <div class="flex gap-2 pt-2">
                     <button type="submit" id="btn-save" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-md flex justify-center items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> บันทึก</button>
                     <button type="button" onclick="window.resetForm()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium py-2.5 px-3.5 rounded-xl text-sm">ยกเลิก</button>
@@ -56,4 +89,4 @@
 
     <script type="module" src="js/admin.js"></script>
 </body>
-</html>
+</html

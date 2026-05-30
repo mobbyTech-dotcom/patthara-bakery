@@ -1,6 +1,7 @@
-import { auth, db } from './firebase-config.js';
+import { auth, db, storage } from './firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 // Auth Guard
 onAuthStateChanged(auth, (user) => {
@@ -16,6 +17,44 @@ onAuthStateChanged(auth, (user) => {
 window.logout = () => { signOut(auth); }
 
 let products = [];
+
+// Preview รูปก่อนอัปโหลด
+window.previewImage = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        const preview = document.getElementById('img-preview');
+        preview.src = ev.target.result;
+        preview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+async function uploadImage(file) {
+    return new Promise((resolve, reject) => {
+        const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        const progressBar = document.getElementById('upload-progress');
+        const progressFill = document.getElementById('progress-fill');
+        progressBar.classList.remove('hidden');
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                progressFill.style.width = pct + '%';
+                progressFill.innerText = pct + '%';
+            },
+            (error) => reject(error),
+            async () => {
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                progressBar.classList.add('hidden');
+                resolve(url);
+            }
+        );
+    });
+}
 
 async function loadAdminProducts() {
     const tbody = document.getElementById('admin-product-rows');
@@ -52,14 +91,30 @@ window.saveProduct = async (e) => {
     btn.innerHTML = 'กำลังบันทึก...'; btn.disabled = true;
 
     const id = document.getElementById('prod-id').value;
-    const data = {
-        name: document.getElementById('prod-name').value,
-        price: parseInt(document.getElementById('prod-price').value),
-        img: document.getElementById('prod-img').value,
-        desc: document.getElementById('prod-desc').value
-    };
+    const fileInput = document.getElementById('prod-img-file');
+    const file = fileInput.files[0];
+
+    let imgUrl = document.getElementById('current-img-url').value;
 
     try {
+        if (file) {
+            imgUrl = await uploadImage(file);
+        }
+
+        if (!imgUrl) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกรูปภาพสินค้า', 'warning');
+            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> บันทึก'; btn.disabled = false;
+            lucide.createIcons();
+            return;
+        }
+
+        const data = {
+            name: document.getElementById('prod-name').value,
+            price: parseInt(document.getElementById('prod-price').value),
+            img: imgUrl,
+            desc: document.getElementById('prod-desc').value
+        };
+
         if (id) {
             await updateDoc(doc(db, "products", id), data);
             Swal.fire('สำเร็จ', 'อัปเดตข้อมูลบน Cloud แล้ว', 'success');
@@ -70,7 +125,7 @@ window.saveProduct = async (e) => {
         window.resetForm();
         loadAdminProducts();
     } catch (error) {
-        Swal.fire('Error', 'ไม่สามารถบันทึกได้ กรุณาตรวจสอบสิทธิ์', 'error');
+        Swal.fire('Error', 'ไม่สามารถบันทึกได้: ' + error.message, 'error');
     } finally {
         btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> บันทึก'; btn.disabled = false; lucide.createIcons();
     }
@@ -82,8 +137,11 @@ window.editProduct = (id) => {
     document.getElementById('prod-id').value = prod.id;
     document.getElementById('prod-name').value = prod.name;
     document.getElementById('prod-price').value = prod.price;
-    document.getElementById('prod-img').value = prod.img;
     document.getElementById('prod-desc').value = prod.desc;
+    document.getElementById('current-img-url').value = prod.img;
+    const preview = document.getElementById('img-preview');
+    preview.src = prod.img;
+    preview.classList.remove('hidden');
     document.getElementById('form-title').innerHTML = `<i data-lucide="pencil" class="text-blue-500"></i> แก้ไขสินค้า`;
     lucide.createIcons();
 }
@@ -104,6 +162,9 @@ window.deleteProduct = (id) => {
 window.resetForm = () => {
     document.getElementById('product-form').reset();
     document.getElementById('prod-id').value = '';
+    document.getElementById('current-img-url').value = '';
+    document.getElementById('img-preview').classList.add('hidden');
+    document.getElementById('upload-progress').classList.add('hidden');
     document.getElementById('form-title').innerHTML = `<i data-lucide="cloud-upload" class="text-blue-500"></i> อัปโหลดสินค้าขึ้น Cloud`;
     lucide.createIcons();
 }
